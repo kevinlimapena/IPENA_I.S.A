@@ -10,13 +10,14 @@ dependencies:
   animated_background: ^2.0.0
   flutter:
     sdk: flutter
-  package_info_plus: ^8.1.1
+  package_info_plus: ^8.0.0
   flutter_pdfview: ^1.3.4
   syncfusion_flutter_pdfviewer: ^28.1.35
-  open_filex: ^4.6.0
+   
   path_provider: ^2.1.5
   provider: ^6.1.2
   get: ^4.6.6
+  connectivity_plus: ^6.1.3
 
 dev_dependencies:
   flutter_test:
@@ -28,3 +29,14 @@ flutter:
 
   assets:
     - assets/logo.png
+    - assets/page001.jpg
+    - assets/page002.jpg
+    - assets/page003.jpg
+    - assets/page004.jpg
+    - assets/page005.jpg
+    - assets/page006.jpg
+    - assets/page007.jpg
+    - assets/page008.jpg
+    - assets/Prancheta 2.png  
+    - assets/Prancheta 5.png
+ 

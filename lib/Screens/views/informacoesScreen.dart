@@ -2,116 +2,226 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/material.dart';
- 
+
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 
- 
 import 'dart:ui';
 import 'package:path_provider/path_provider.dart';
+
 class InfoScreen extends StatelessWidget {
   const InfoScreen({super.key});
 
-  @override
-
-  Future<void> _openPDF() async {
-    const pdfFileName = 'politicadeprivacidadeFCC.pdf';
-
-    try {
-      // Obtenha o caminho do arquivo no app
-      final byteData = await rootBundle.load('assets/$pdfFileName');
-      final tempDir = await getTemporaryDirectory();
-      final filePath = '${tempDir.path}/$pdfFileName';
-      final file = File(filePath);
-
-      // Escreve o arquivo temporário
-      await file.writeAsBytes(byteData.buffer.asUint8List());
-
-      // Abre o arquivo com o leitor externo padrão
-      final fileUri = Uri.file(file.path);
-      if (await canLaunchUrl(fileUri)) {
-        await launchUrl(fileUri);
-      } else {
-        throw 'Não foi possível abrir o PDF.';
-      }
-    } catch (e) {
-      debugPrint('Erro ao abrir PDF: $e');
-    }
-  }
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Column(
-        children: [
-          // Espaçamento para posicionar o conteúdo mais acima
-          const SizedBox(height: 50),
-          // Logo do app com o nome ao lado, alinhados no topo
-          Align(
-            alignment: Alignment.topLeft,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const SizedBox(width: 20),
-                Image.asset(
-                  "assets/logo.png",
-                  height: 50,
-                ),
-                const SizedBox(width: 10),
-                const Text(
-                  'Aplicação FCC',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            ClipPath(
+              clipper: clipper(),
+              child: Container(
+                padding: const EdgeInsets.all(0),
+                color: Colors.blueAccent,
+                child: SizedBox(
+                  height: 400,
+                  child: Stack(
+                    children: [
+                      Positioned(
+                          top: -150,
+                          right: -250,
+                          child: CircularContainer(
+                            color: Colors.purple.shade800.withOpacity(0.2),
+                          )),
+                      Positioned(
+                          top: 100,
+                          right: -300,
+                          child: CircularContainer(
+                            color: Colors.purple.shade800.withOpacity(0.2),
+                          )),
+                      Positioned(
+                          top: -100,
+                          right: 300,
+                          child: CircularContainer(
+                            color: Colors.purple.shade800.withOpacity(0.2),
+                          )),
+                      Positioned(
+                          top: 150,
+                          right: 250,
+                          child: CircularContainer(
+                            color: Colors.purple.shade800.withOpacity(0.2),
+                          )),
+                      Align(
+                        alignment: Alignment.center,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Image.asset(
+                              "assets/Prancheta 2.png",
+                              height: 250,
+                            ),
+                            const SizedBox(
+                              width: 10,
+                            ),
+                            const Text(
+                              'App I.S.A',
+                              style: TextStyle(
+                                fontSize: 30,
+                                color: Colors.white,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
-          // Texto informando quem desenvolveu
-          const Text(
-            'Projeto do Aplicativo da fábrica, Desenvolvido pela Ipenaconsultoria',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey,
-            ),
-          ),
-          const SizedBox(height: 30),
-          // Informações de contato
-          const ContactInfoRow(
-            icon: Icons.email,
-            label: 'Dúvidas/Sugestões:',
-            email: 'ipenaconsult@gmail.com',
-          ),
-          const SizedBox(height: 15),
-          const ContactInfoRow(
-            icon: Icons.email,
-            label: 'Informações sobre meus dados:',
-            email: 'ipenaconsult@gmail.com',
-          ),
-          const Spacer(),
-          // Botão de Política de Privacidade alinhado no centro
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-
-                  _openPDF();
-                  // Navegar para a tela de Política de Privacidade
-                  // Navigator.push(
-                  //   context,
-                  //   MaterialPageRoute(
-                  //     builder: (context) => const PDFViewerScreen(),
-                  //   ),
-                  // );
-                },
-                child: const Text("Política de Privacidade"),
               ),
             ),
-          ),
-        ],
+            Container(
+              padding: const EdgeInsets.all(8),
+              height: 300,
+              width: double.infinity,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  Container(
+                    decoration: const BoxDecoration(
+                      borderRadius: BorderRadius.all(
+                        Radius.circular(8),
+                      ),
+                      color: Colors.blueAccent,
+                    ),
+                    height: 200,
+                    width: MediaQuery.of(context).size.width * .45,
+                    padding: const EdgeInsets.all(8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        Container(
+                          width: 50,
+                          height: 50,
+                          decoration: const BoxDecoration(
+                            borderRadius: BorderRadius.all(
+                              Radius.circular(50),
+                            ),
+                            color: Colors.white,
+                          ),
+                          child: const Icon(Icons.question_answer_outlined),
+                        ),
+                        const Text(
+                          "Alguma sugestão ou Melhoria?",
+                          style: TextStyle(
+                              color: Colors.black87,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800),
+                        ),
+                        const Text(
+                          "ipenaconsult@gmail.com",
+                          style: TextStyle(color: Colors.black),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    height: 200,
+                    padding: const EdgeInsets.all(8),
+                    width: MediaQuery.of(context).size.width * .45,
+                    decoration: const BoxDecoration(
+                      borderRadius: BorderRadius.all(
+                        Radius.circular(8),
+                      ),
+                      color: Colors.blueAccent,
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        Container(
+                          width: 50,
+                          height: 50,
+                          decoration: const BoxDecoration(
+                            borderRadius: BorderRadius.all(
+                              Radius.circular(50),
+                            ),
+                            color: Colors.white,
+                          ),
+                          child: const Icon(Icons.question_mark_outlined),
+                        ),
+                        const Text(
+                          "Como seus dados estão sendo salvos?",
+                          style: TextStyle(
+                              color: Colors.black87,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800),
+                        ),
+                        const Text(
+                          "ipenaconsult@gmail.com",
+                          style: TextStyle(color: Colors.black),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const PoliticaPrivacidade()),
+                );
+              },
+              style:
+                  ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
+              child: const Text(
+                "Políticas de Privacidade",
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+            const Padding(
+              padding: EdgeInsets.all(10.0),
+              child: Text(
+                  style: TextStyle(
+                    color: Colors.grey,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  "Projeto do Aplicativo da fábrica, Desenvolvido pela Ipenaconsultoria"),
+            )
+          ],
+        ),
       ),
+    );
+  }
+}
+
+class CircularContainer extends StatelessWidget {
+  const CircularContainer({
+    super.key,
+    this.width = 400,
+    this.height = 400,
+    this.radius = 400,
+    this.padding = 0,
+    this.color = Colors.white,
+    this.child,
+  });
+
+  final double? width;
+  final double? height;
+  final double radius;
+  final double padding;
+  final Color color;
+  final Widget? child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: height,
+      width: width,
+      padding: EdgeInsets.all(padding),
+      decoration: BoxDecoration(
+          color: color, borderRadius: BorderRadius.circular(radius)),
+      child: child,
     );
   }
 }
@@ -145,17 +255,96 @@ class ContactInfoRow extends StatelessWidget {
   }
 }
 
+class clipper extends CustomClipper<Path> {
+  @override
+  getClip(Size size) {
+    var path = Path();
+    path.lineTo(0, size.height - 30);
+    var controllPoint = Offset(10, size.height);
+    var endPoint = Offset(size.width / 2, size.height);
+    path.quadraticBezierTo(
+        controllPoint.dx, controllPoint.dy, endPoint.dx, endPoint.dy);
+    var controllPoint2 = Offset(size.width - 10, size.height);
+    var endPoint2 = Offset(size.width, size.height - 30);
+    path.quadraticBezierTo(
+        controllPoint2.dx, controllPoint2.dy, endPoint2.dx, endPoint2.dy);
+    path.lineTo(size.width, 0);
+    return path;
+  }
+
+  @override
+  bool shouldReclip(covariant CustomClipper oldClipper) {
+    return true;
+  }
+}
 // Tela de Política de Privacidade
-class PDFViewerScreen extends StatelessWidget {
-  const PDFViewerScreen({Key? key}) : super(key: key);
+
+class PoliticaPrivacidade extends StatefulWidget {
+  const PoliticaPrivacidade({Key? key}) : super(key: key);
+
+  @override
+  _PoliticaPrivacidadeScreenState createState() =>
+      _PoliticaPrivacidadeScreenState();
+}
+
+class _PoliticaPrivacidadeScreenState extends State<PoliticaPrivacidade> {
+  final List<String> _imagePaths = [
+    "assets/page001.jpg",
+    "assets/page002.jpg",
+    "assets/page003.jpg",
+    "assets/page004.jpg",
+    "assets/page005.jpg",
+    "assets/page006.jpg",
+    "assets/page007.jpg",
+  ];
+  int _currentIndex = 0;
+
+  void _nextImage() {
+    setState(() {
+      _currentIndex = (_currentIndex + 1) % _imagePaths.length;
+    });
+  }
+
+  void _previousImage() {
+    setState(() {
+      _currentIndex =
+          (_currentIndex - 1 + _imagePaths.length) % _imagePaths.length;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-    
-      body: Center(child: SfPdfViewer.asset('assets/politicadeprivacidadeFCC.pdf')),
+      appBar: AppBar(title: const Text("Política de Privacidade")),
+      body: Stack(
+        alignment: Alignment.center,
+        children: [
+          InteractiveViewer(
+            minScale: 1.0,
+            maxScale: 4.0,
+            child: Image.asset(
+              _imagePaths[_currentIndex],
+              width: MediaQuery.of(context).size.width * 0.9,
+              height: MediaQuery.of(context).size.height * 0.8,
+              fit: BoxFit.contain,
+            ),
+          ),
+          Positioned(
+            left: 10,
+            child: IconButton(
+              icon: const Icon(Icons.arrow_back_ios, size: 32),
+              onPressed: _previousImage,
+            ),
+          ),
+          Positioned(
+            right: 10,
+            child: IconButton(
+              icon: const Icon(Icons.arrow_forward_ios, size: 32),
+              onPressed: _nextImage,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
-
-  

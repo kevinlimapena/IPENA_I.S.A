@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:io' show Platform;
+
 import 'dart:ui';
 
 import 'package:fcc/Screens/views/informacoesScreen.dart';
@@ -8,7 +11,9 @@ import 'package:get/route_manager.dart';
 import '../../Componentes/MenuItem.dart';
 import '../loginScreen/login_page.dart';
 import '../views/baixaScreen/baixaSolicitacaoScreen.dart';
+import '../views/enter/EnterHome.dart';
 import '../views/solicitacaoScreen.dart';
+import 'package:intl/intl.dart';
 
 class HomeScreen extends StatefulWidget {
   final String user;
@@ -23,10 +28,11 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   bool isSidebarOpen = false;
   bool expendedTile = false;
+  late String _timeString;
   int selectedIndex = 0;
   String nome = '';
   List<dynamic> _acessoUser = [];
-
+  bool sidebar = false;
   late double height;
 
   bool _menuBudgetGeral = false;
@@ -42,6 +48,18 @@ class _HomeScreenState extends State<HomeScreen> {
     'Integracao': false,
     'Sair': false,
   };
+
+  void _getTime() {
+    final DateTime now = DateTime.now();
+    final String formattedDateTime = _formatDateTime(now);
+    setState(() {
+      _timeString = formattedDateTime;
+    });
+  }
+
+  String _formatDateTime(DateTime dateTime) {
+    return DateFormat('MM/dd/yyyy hh:mm:ss').format(dateTime);
+  }
 
   void _confirmarSaida() {
     showDialog(
@@ -60,6 +78,7 @@ class _HomeScreenState extends State<HomeScreen> {
             text: const TextSpan(
               text: 'Confirmação\t',
               style: TextStyle(
+                color: Colors.black,
                 fontFamily: "Bebas",
                 fontSize: 24,
                 letterSpacing: 0,
@@ -70,6 +89,7 @@ class _HomeScreenState extends State<HomeScreen> {
             text: const TextSpan(
               text: 'Deseja mesmo fazer Logoff\t',
               style: TextStyle(
+                color: Colors.black,
                 fontFamily: "Bebas",
                 fontSize: 16,
                 letterSpacing: 0,
@@ -127,6 +147,17 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    // if (Platform.isAndroid) {
+    //   setState(() {
+    //     sidebar = false;
+    //   });
+    // } else if (Platform.isWindows) {
+    //   setState(() {
+    //     sidebar = true;
+    //   });
+    // }
+    _timeString = _formatDateTime(DateTime.now());
+    Timer.periodic(const Duration(seconds: 1), (Timer t) => _getTime());
     FlutterView view = WidgetsBinding.instance.platformDispatcher.views.first;
 
 // Dimensions in physical pixels (px)
@@ -147,84 +178,217 @@ class _HomeScreenState extends State<HomeScreen> {
         actions: <Widget>[
           Expanded(
             child: Flexible(
-              child: Row(
-                children: [
-                  Stack(
-                    children: [
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 150),
-                        width: isSidebarOpen ? 250 : 70,
-                        height: double.infinity,
-                        color: const Color(0xFF303237),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.only(left: 8.5),
-                        child: Row(
-                          children: [
-                            IconButton(
-                              onPressed: () {
-                                setState(() {
-                                  isSidebarOpen = !isSidebarOpen;
-                                  if (expendedTile) {
-                                    expendedTile = !expendedTile;
-                                  }
-                                });
-                              },
-                              icon: Align(
-                                alignment: isSidebarOpen
-                                    ? Alignment.centerRight
-                                    : Alignment.center,
-                                child: const Icon(Icons.dashboard),
-                              ),
-                              color: const Color.fromARGB(255, 255, 255, 255),
-                            ),
-                            if (isSidebarOpen)
-                              RichText(
-                                text: TextSpan(
-                                  text: 'I.S.A\t',
-                                  style: TextStyle(
-                                    color: (Colors.white),
-                                    fontFamily: "Bebas",
-                                    fontSize: 30,
-                                    letterSpacing: 5,
-                                  ),
-                                  children: [TextSpan(text: ' ')],
-                                ),
-                              ),
-                          ],
+              child: Container(
+                color: const Color(0xFF303237),
+                child: Row(
+                  children: [
+                    Stack(
+                      children: [
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          width: isSidebarOpen ? 250 : 60,
+                          height: double.infinity,
+                          color: const Color(0xFF303237),
                         ),
-                      ),
-                    ],
-                  ),
-                  const Spacer(),
-                  IconButton(
-                      onPressed: () {}, icon: const Icon(Icons.dark_mode)),
-                  IconButton(
+                        Padding(
+                          padding: const EdgeInsets.only(left: 8.5),
+                          child: Row(
+                            children: [
+                              if (sidebar)
+                                IconButton(
+                                  onPressed: () {
+                                    setState(() {
+                                      isSidebarOpen = !isSidebarOpen;
+                                      if (expendedTile) {
+                                        expendedTile = !expendedTile;
+                                      }
+                                    });
+                                  },
+                                  icon: Align(
+                                    alignment: isSidebarOpen
+                                        ? Alignment.centerRight
+                                        : Alignment.center,
+                                    child: const Icon(Icons.dashboard),
+                                  ),
+                                  color: Colors.blue,
+                                ),
+                              if (isSidebarOpen)
+                                RichText(
+                                  text: const TextSpan(
+                                    text: 'I.S.A\t',
+                                    style: TextStyle(
+                                      color: (Colors.white),
+                                      fontFamily: "Bebas",
+                                      fontSize: 30,
+                                      letterSpacing: 5,
+                                    ),
+                                    children: [TextSpan(text: ' ')],
+                                  ),
+                                ),
+                              if (!sidebar) ...[
+                                _buildDrawerItem(
+                                  icon: Icons.exit_to_app,
+                                  label: 'Logoff',
+                                  isOpen: isSidebarOpen,
+                                  onTap: () {
+                                    setState(() {
+                                      _confirmarSaida();
+                                    });
+                                  },
+                                ),
+                                _buildDrawerArrowItem(
+                                  icon: Icons.addchart,
+                                  label: 'Solicitação Armazem',
+                                  isOpen: isSidebarOpen,
+                                  onTap: () {
+                                    if (isSidebarOpen) {
+                                      setState(() {
+                                        expendedTile = !expendedTile;
+                                      });
+                                    } else {
+                                      setState(() {
+                                        //    isSubMenuOpen = !isSubMenuOpen; // Alterna o estado do sub-menu
+                                        showDialog(
+                                          barrierColor:
+                                              Colors.black.withOpacity(0.1),
+                                          context: context,
+                                          builder: (BuildContext context) {
+                                            return Align(
+                                              alignment: Alignment.center,
+                                              child: Stack(
+                                                children: [
+                                                  Material(
+                                                    color: Colors.transparent,
+                                                    child: Container(
+                                                      width: 300,
+                                                      height: 300,
+                                                      decoration: BoxDecoration(
+                                                        color: const Color(
+                                                            0xFF303237), // Cor de fundo
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                                8), // Cantos arredondados
+                                                        boxShadow: [
+                                                          BoxShadow(
+                                                            color: Colors.black
+                                                                .withOpacity(
+                                                                    0.3),
+                                                            blurRadius: 8,
+                                                            offset: const Offset(
+                                                                0,
+                                                                4), // Sombra leve
+                                                          ),
+                                                        ],
+                                                      ),
+                                                      padding: const EdgeInsets
+                                                          .all(
+                                                          16), // Espaçamento interno
+                                                      child: Column(
+                                                        crossAxisAlignment:
+                                                            CrossAxisAlignment
+                                                                .start,
+                                                        mainAxisAlignment:
+                                                            MainAxisAlignment
+                                                                .start, // Alinhamento dos itens
+                                                        children: [
+                                                          const Text(
+                                                            'Selecione a Rotina:',
+                                                            style: TextStyle(
+                                                              fontSize: 18,
+                                                              color:
+                                                                  Colors.white,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold,
+                                                            ),
+                                                          ),
+                                                          const SizedBox(
+                                                            height: 10,
+                                                          ),
+                                                          HoverTextButton(
+                                                            text:
+                                                                'Solicitação de Produtos',
+                                                            onPressed: () {
+                                                              setState(() {
+                                                                selectedIndex =
+                                                                    0;
+                                                                Navigator.of(
+                                                                        context)
+                                                                    .pop();
+                                                              });
+                                                            },
+                                                          ),
+                                                          HoverTextButton(
+                                                            text:
+                                                                'Baixa Solicitação',
+                                                            onPressed: () {
+                                                              setState(() {
+                                                                selectedIndex =
+                                                                    1;
+                                                                Navigator.of(
+                                                                        context)
+                                                                    .pop();
+                                                              });
+                                                            },
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            );
+                                          },
+                                        );
+                                      });
+                                    }
+                                  },
+                                  expanded: expendedTile,
+                                ),
+                              ]
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const Spacer(),
+                    Center(
+                        child: Text(
+                      _timeString,
+                      style: const TextStyle(
+                          fontSize: 14,
+                          fontFamily: 'Bebas',
+                          color: Colors.white),
+                    )),
+                    //   IconButton(onPressed: () {}, icon: const Icon(Icons.dark_mode)),
+                    IconButton(
                       onPressed: () {
                         setState(() {
                           selectedIndex = 2;
                         });
                       },
-                      icon: const Icon(Icons.info_outlined)),
-                  IconButton(
-                      onPressed: () {},
-                      icon: const Icon(Icons.circle_outlined)),
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: RichText(
-                      text: TextSpan(
-                        text: 'UserName ',
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.secondary,
-                          fontFamily: "Bebas",
-                          fontSize: 14,
-                          letterSpacing: 1,
+                      icon: const Icon(Icons.info_outlined),
+                      color: Colors.white,
+                    ),
+
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: RichText(
+                        text: TextSpan(
+                          text: widget.user,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.secondary,
+                            fontFamily: "Bebas",
+                            fontSize: 14,
+                            letterSpacing: 1,
+                          ),
+                          children: [const TextSpan(text: ' ')],
                         ),
-                        children: [TextSpan(text: ' ')],
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -234,170 +398,172 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       body: Row(
         children: [
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 150),
-            width: isSidebarOpen ? 250 : 70,
-            color: const Color(0xFF303237),
-            child: Column(
-              children: [
-                Expanded(
-                  child: ListView(
-                    children: [
-                      _buildDrawerArrowItem(
-                        icon: Icons.addchart,
-                        label: 'Solicitação de Produtos',
-                        isOpen: isSidebarOpen,
-                        onTap: () {
-                          if (isSidebarOpen) {
-                            setState(() {
-                              expendedTile = !expendedTile;
-                            });
-                          } else {
-                            setState(() {
-                              //    isSubMenuOpen = !isSubMenuOpen; // Alterna o estado do sub-menu
-                              showDialog(
-                                barrierColor: Colors.black.withOpacity(0.1),
-                                context: context,
-                                builder: (BuildContext context) {
-                                  return Stack(
-                                    children: [
-                                      Positioned(
-                                        bottom: height /
-                                            math.pi *
-                                            1.6, // Distância do topo
-                                        left:
-                                            70, // Distância da borda esquerda (mude para `right` para o outro lado)
-                                        child: Material(
-                                          color: Colors.transparent,
-                                          child: Container(
-                                            width: 180,
-                                            height: 170,
-                                            decoration: BoxDecoration(
-                                              color: const Color(
-                                                  0xFF303237), // Cor de fundo
-                                              borderRadius:
-                                                  BorderRadius.circular(
-                                                      8), // Cantos arredondados
-                                              boxShadow: [
-                                                BoxShadow(
-                                                  color: Colors.black
-                                                      .withOpacity(0.3),
-                                                  blurRadius: 8,
-                                                  offset: const Offset(
-                                                      0, 4), // Sombra leve
-                                                ),
-                                              ],
-                                            ),
-                                            padding: const EdgeInsets.all(
-                                                16), // Espaçamento interno
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              mainAxisAlignment: MainAxisAlignment
-                                                  .start, // Alinhamento dos itens
-                                              children: [
-                                                HoverTextButton(
-                                                  text:
-                                                      'Solicitação de Produtos',
-                                                  onPressed: () {
-                                                    setState(() {
-                                                      selectedIndex = 0;
-                                                      Navigator.of(context)
-                                                          .pop();
-                                                    });
-                                                  },
-                                                ),
-                                                HoverTextButton(
-                                                  text: 'Baixa Solicitação',
-                                                  onPressed: () {
-                                                    setState(() {
-                                                      selectedIndex = 1;
-                                                      Navigator.of(context)
-                                                          .pop();
-                                                    });
-                                                  },
-                                                ),
-                                              ],
+          if (sidebar) ...[
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              width: isSidebarOpen ? 250 : 60,
+              color: const Color(0xFF303237),
+              child: Column(
+                children: [
+                  Expanded(
+                    child: ListView(
+                      children: [
+                        _buildDrawerArrowItem(
+                          icon: Icons.addchart,
+                          label: 'Solicitação Armazem',
+                          isOpen: isSidebarOpen,
+                          onTap: () {
+                            if (isSidebarOpen) {
+                              setState(() {
+                                expendedTile = !expendedTile;
+                              });
+                            } else {
+                              setState(() {
+                                //    isSubMenuOpen = !isSubMenuOpen; // Alterna o estado do sub-menu
+                                showDialog(
+                                  barrierColor: Colors.black.withOpacity(0.1),
+                                  context: context,
+                                  builder: (BuildContext context) {
+                                    return Stack(
+                                      children: [
+                                        Positioned(
+                                          bottom: height /
+                                              math.pi *
+                                              1.6, // Distância do topo
+                                          left:
+                                              70, // Distância da borda esquerda (mude para `right` para o outro lado)
+                                          child: Material(
+                                            color: Colors.transparent,
+                                            child: Container(
+                                              width: 180,
+                                              height: 170,
+                                              decoration: BoxDecoration(
+                                                color: const Color(
+                                                    0xFF303237), // Cor de fundo
+                                                borderRadius:
+                                                    BorderRadius.circular(
+                                                        8), // Cantos arredondados
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: Colors.black
+                                                        .withOpacity(0.3),
+                                                    blurRadius: 8,
+                                                    offset: const Offset(
+                                                        0, 4), // Sombra leve
+                                                  ),
+                                                ],
+                                              ),
+                                              padding: const EdgeInsets.all(
+                                                  16), // Espaçamento interno
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                mainAxisAlignment: MainAxisAlignment
+                                                    .start, // Alinhamento dos itens
+                                                children: [
+                                                  HoverTextButton(
+                                                    text:
+                                                        'Solicitação de Produtos',
+                                                    onPressed: () {
+                                                      setState(() {
+                                                        selectedIndex = 0;
+                                                        Navigator.of(context)
+                                                            .pop();
+                                                      });
+                                                    },
+                                                  ),
+                                                  HoverTextButton(
+                                                    text: 'Baixa Solicitação',
+                                                    onPressed: () {
+                                                      setState(() {
+                                                        selectedIndex = 1;
+                                                        Navigator.of(context)
+                                                            .pop();
+                                                      });
+                                                    },
+                                                  ),
+                                                ],
+                                              ),
                                             ),
                                           ),
                                         ),
-                                      ),
-                                    ],
-                                  );
-                                },
-                              );
-                            });
-                          }
-                        },
-                        expanded: expendedTile,
-                      ),
-                      ClipRect(
-                        child: AnimatedSize(
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.easeInOut,
-                          // Necessário para animações baseadas em tamanho
-                          child: expendedTile
-                              ? Container(
-                                  width: double.infinity,
-                                  child: Row(
-                                    children: [
-                                      Container(
-                                        width: 60,
-                                      ),
-                                      Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          HoverTextButton(
-                                            text: 'Solicitação de Produtos',
-                                            onPressed: () {
-                                              setState(() {
-                                                selectedIndex = 0;
-                                              });
-                                            },
-                                          ),
-                                          HoverTextButton(
-                                            text: 'Baixa Solicitação',
-                                            onPressed: () {
-                                              setState(() {
-                                                selectedIndex = 1;
-                                              });
-                                            },
-                                          ),
-                                        ],
-                                      )
-                                    ],
-                                  ),
-                                )
-                              : const SizedBox.shrink(),
+                                      ],
+                                    );
+                                  },
+                                );
+                              });
+                            }
+                          },
+                          expanded: expendedTile,
                         ),
-                      ),
-                      _buildDrawerItem(
-                        icon: Icons.upload_file,
-                        label: 'Integração',
-                        isOpen: isSidebarOpen,
-                        onTap: () {
-                          setState(() {
-                            selectedIndex = 1;
-                          });
-                        },
-                      ),
-                      _buildDrawerItem(
-                        icon: Icons.exit_to_app,
-                        label: 'Logoff',
-                        isOpen: isSidebarOpen,
-                        onTap: () {
-                          setState(() {
-                            _confirmarSaida();
-                          });
-                        },
-                      ),
-                    ],
+                        ClipRect(
+                          child: AnimatedSize(
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeInOut,
+                            // Necessário para animações baseadas em tamanho
+                            child: expendedTile
+                                ? Container(
+                                    width: double.infinity,
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          width: 60,
+                                        ),
+                                        Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            HoverTextButton(
+                                              text: 'Solicitação de Produtos',
+                                              onPressed: () {
+                                                setState(() {
+                                                  selectedIndex = 0;
+                                                });
+                                              },
+                                            ),
+                                            HoverTextButton(
+                                              text: 'Baixa Solicitação',
+                                              onPressed: () {
+                                                setState(() {
+                                                  selectedIndex = 1;
+                                                });
+                                              },
+                                            ),
+                                          ],
+                                        )
+                                      ],
+                                    ),
+                                  )
+                                : const SizedBox.shrink(),
+                          ),
+                        ),
+                        // _buildDrawerItem(
+                        //   icon: Icons.upload_file,
+                        //   label: 'Integração',
+                        //   isOpen: isSidebarOpen,
+                        //   onTap: () {
+                        //     setState(() {
+                        //       selectedIndex = 1;
+                        //     });
+                        //   },
+                        // ),
+                        _buildDrawerItem(
+                          icon: Icons.exit_to_app,
+                          label: 'Logoff',
+                          isOpen: isSidebarOpen,
+                          onTap: () {
+                            setState(() {
+                              _confirmarSaida();
+                            });
+                          },
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
+          ],
           Expanded(
             flex: 1,
             child: _buildContent(), // Exibe o conteúdo baseado no índice.
@@ -413,7 +579,14 @@ class _HomeScreenState extends State<HomeScreen> {
       case 0:
         return FCCApp(user: widget.user, senha: widget.senha);
       case 1:
-        return baixaSolicitacaoScreen(user: widget.user, senha: widget.senha);
+        return baixaSolicitacaoScreen(
+          user: widget.user,
+          senha: widget.senha,
+          onIndexChanged: (int) {},
+          updateTexto: (String) {},
+          texto: '',
+        );
+      // return Enterhome();
       case 2:
         return const InfoScreen();
       default:

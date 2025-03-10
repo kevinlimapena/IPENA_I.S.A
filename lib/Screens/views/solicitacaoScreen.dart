@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import '../homescreen/HomeScreen.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:intl/intl.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 Uint8List? imageData;
 String selectedcode = '';
@@ -24,19 +26,29 @@ class _FCCAppState extends State<FCCApp> {
   bool isImageAvailable = false;
   Map<String, dynamic> selectedrowData = {} ?? {};
   String searchText = '';
+  String searchTextminus = '';
   int? selectedIndex;
 
   bool isLoading = true;
   bool hasError = false;
 
+  ScrollController _scrollController = ScrollController();
+
   @override
   void initState() {
     super.initState();
     fetchData1();
+    _scrollController = ScrollController();
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.landscapeRight,
     ]);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   Future<void> fetchData1({int page = 1, int limit = 50}) async {
@@ -257,6 +269,21 @@ class _FCCAppState extends State<FCCApp> {
     final filteredData = rowData.where((data) {
       return data["Codigo"]!.toLowerCase().contains(searchText) ||
           data["Descrição"]!.toLowerCase().contains(searchText);
+    }).toList();
+
+    final startIndex = currentPage * itemsPerPage;
+    final endIndex = startIndex + itemsPerPage;
+
+    return filteredData.sublist(
+      startIndex,
+      endIndex < filteredData.length ? endIndex : filteredData.length,
+    );
+  }
+
+  List<Map<String, dynamic>> get paginatedDataminus {
+    final filteredData = rowData.where((data) {
+      return data["Numero Os"]!.toLowerCase().contains(searchTextminus) ||
+          data["Status OS"]!.toLowerCase().contains(searchTextminus);
     }).toList();
 
     final startIndex = currentPage * itemsPerPage;
@@ -555,6 +582,9 @@ class _FCCAppState extends State<FCCApp> {
     );
   }
 
+  NumberFormat formatter = NumberFormat("00");
+  int nextItemCounter = 0;
+
   List<Map<String, dynamic>> camposAdd = [];
   Widget _buildDataRow2(String title) {
     return SingleChildScrollView(
@@ -563,7 +593,7 @@ class _FCCAppState extends State<FCCApp> {
           Container(
             // height: MediaQuery.of(context).size.width * 0.6,
             // width: MediaQuery.of(context).size.width * 0.4,
-            constraints: BoxConstraints(minHeight: 100, maxHeight: 600),
+            constraints: BoxConstraints(minHeight: 130, maxHeight: 600),
             decoration: BoxDecoration(
               border: Border.all(color: Colors.black, width: 1.0),
             ),
@@ -596,9 +626,14 @@ class _FCCAppState extends State<FCCApp> {
                             bool exists = camposAdd
                                 .any((item) => item['descricao'] == descricao);
 
+                            nextItemCounter = camposAdd.length + 1;
+
                             // Se o item não existir, adiciona; caso contrário, exibe uma mensagem ou realiza outra ação
                             if (!exists) {
                               camposAdd.add({
+                                'item': formatter
+                                    .format(nextItemCounter)
+                                    .toString(),
                                 'codigo':
                                     selectedrowData['Codigo'] ?? 'Sem código',
                                 'descricao': descricao,
@@ -609,6 +644,8 @@ class _FCCAppState extends State<FCCApp> {
                                     selectedrowData['Centro de custo'] ?? '',
                                 'Imagem': selectedrowData['Imagem'] ?? '',
                                 'Almox': selectedrowData['Almoxarifado'] ?? '',
+                                'qtd': '',
+                                'NumOs': ''
                               });
                             } else {
                               // Exibe uma mensagem informando que o item já foi adicionado
@@ -619,6 +656,13 @@ class _FCCAppState extends State<FCCApp> {
                                 ),
                               );
                             }
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              _scrollController.animateTo(
+                                _scrollController.position.maxScrollExtent,
+                                duration: Duration(milliseconds: 300),
+                                curve: Curves.easeOut,
+                              );
+                            });
                           }
                         });
                       },
@@ -640,7 +684,7 @@ class _FCCAppState extends State<FCCApp> {
                     // Botão para solicitar envio
                     TextButton.icon(
                       icon: const Icon(Icons.send,
-                          color: Colors.blueAccent, size: 15),
+                          color: Colors.blueAccent, size: 12),
                       label: const Text(
                         'Solicitar',
                         style: TextStyle(color: Colors.blueAccent),
@@ -677,10 +721,11 @@ class _FCCAppState extends State<FCCApp> {
                 Table(
                   border: TableBorder.all(color: Colors.black),
                   columnWidths: const {
-                    0: FlexColumnWidth(0.4),
-                    1: FlexColumnWidth(0.6),
+                    0: FlexColumnWidth(0.25),
+                    1: FlexColumnWidth(0.4),
                     2: FlexColumnWidth(0.4),
-                    3: FlexColumnWidth(1),
+                    3: FlexColumnWidth(0.5),
+                    4: FlexColumnWidth(0.9),
                   },
                   children: [
                     TableRow(
@@ -690,23 +735,39 @@ class _FCCAppState extends State<FCCApp> {
                       children: const [
                         Padding(
                           padding: EdgeInsets.all(8.0),
-                          child: Text('Código',
-                              style: TextStyle(fontWeight: FontWeight.bold)),
+                          child: Text('Item',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 12)),
                         ),
                         Padding(
                           padding: EdgeInsets.all(8.0),
-                          child: Text('Descrição',
-                              style: TextStyle(fontWeight: FontWeight.bold)),
+                          child: Text('Código',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 12)),
                         ),
+                        // Padding(
+                        //   padding: EdgeInsets.all(8.0),
+                        //   child: Text('Descrição',
+                        //       style: TextStyle(
+                        //           fontWeight: FontWeight.bold, fontSize: 12)),
+                        // ),
                         Padding(
                           padding: EdgeInsets.all(8.0),
                           child: Text('Centro de Custo',
-                              style: TextStyle(fontWeight: FontWeight.bold)),
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 12)),
+                        ),
+                        Padding(
+                          padding: EdgeInsets.all(8.0),
+                          child: Text('Num Os',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 12)),
                         ),
                         Padding(
                           padding: EdgeInsets.all(8.0),
                           child: Text('Quantidade',
-                              style: TextStyle(fontWeight: FontWeight.bold)),
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 12)),
                         ),
                       ],
                     ),
@@ -717,15 +778,17 @@ class _FCCAppState extends State<FCCApp> {
                   constraints: BoxConstraints(minHeight: 0, maxHeight: 120),
                   width: double.infinity,
                   child: SingleChildScrollView(
+                    controller: _scrollController,
                     child: Column(
                       children: [
                         Table(
                           border: TableBorder.all(color: Colors.black),
                           columnWidths: const {
-                            0: FlexColumnWidth(0.4),
-                            1: FlexColumnWidth(0.6),
+                            0: FlexColumnWidth(0.25),
+                            1: FlexColumnWidth(0.4),
                             2: FlexColumnWidth(0.4),
-                            3: FlexColumnWidth(1),
+                            3: FlexColumnWidth(0.5),
+                            4: FlexColumnWidth(0.9),
                           },
                           children: camposAdd.map((campo) {
                             return TableRow(
@@ -734,14 +797,20 @@ class _FCCAppState extends State<FCCApp> {
                                   padding: const EdgeInsets.all(8.0),
                                   child: Text(
                                       style: TextStyle(fontSize: 10),
-                                      campo['codigo'] ?? ''),
+                                      campo['item'] ?? ''),
                                 ),
                                 Padding(
                                   padding: const EdgeInsets.all(8.0),
                                   child: Text(
                                       style: TextStyle(fontSize: 10),
-                                      campo['descricao'] ?? ''),
+                                      campo['codigo'] ?? ''),
                                 ),
+                                // Padding(
+                                //   padding: const EdgeInsets.all(8.0),
+                                //   child: Text(
+                                //       style: TextStyle(fontSize: 10),
+                                //       campo['descricao'] ?? ''),
+                                // ),
                                 Padding(
                                   padding: const EdgeInsets.all(8.0),
                                   child: Text(
@@ -753,7 +822,48 @@ class _FCCAppState extends State<FCCApp> {
                                   child: Row(
                                     children: [
                                       Expanded(
+                                          child: Text(
+                                              style: TextStyle(fontSize: 10),
+                                              campo['NumOs'] ?? '')),
+                                      IconButton(
+                                        onPressed: () async {
+                                          final result =
+                                              await _showPopupMenu_Os(context,
+                                                  campo['NumOs'] ?? '');
+                                          if (result != null) {
+                                            setState(() {
+                                              campo['NumOs'] = result;
+                                            });
+                                          }
+                                        },
+                                        icon: Icon(
+                                          Icons.search,
+                                          color: (campo['NumOs'] != null &&
+                                                  campo['NumOs']
+                                                      .toString()
+                                                      .isNotEmpty)
+                                              ? Colors.blue
+                                              : Colors.black,
+                                        ),
+                                        tooltip: (campo['NumOs'] != null &&
+                                                campo['NumOs']
+                                                    .toString()
+                                                    .isNotEmpty)
+                                            ? campo['NumOs'].toString()
+                                            : 'Pesquise a OS',
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
                                         child: TextField(
+                                          onChanged: (value) {
+                                            campo['qtd'] = value;
+                                          },
                                           decoration: InputDecoration(
                                             border: OutlineInputBorder(),
                                             hintText: 'Digite a quantidade',
@@ -766,6 +876,16 @@ class _FCCAppState extends State<FCCApp> {
                                         onPressed: () {
                                           setState(() {
                                             camposAdd.remove(campo);
+
+                                            for (int i = 0;
+                                                i < camposAdd.length;
+                                                i++) {
+                                              camposAdd[i]['item'] =
+                                                  formatter.format(i + 1);
+                                            }
+
+                                            // Atualiza o contador com a nova quantidade de itens
+                                            nextItemCounter = camposAdd.length;
                                           });
                                         },
                                       ),
@@ -828,14 +948,15 @@ class _FCCAppState extends State<FCCApp> {
     final body = {
       "CP_NUM": "",
       "CP_EMISSAO": "",
-      "CP_SOLICIT": username,
+      "CP_SOLICIT": "",
       "CRIASA": camposAdd.map((campo) {
         return {
           "item": campo['item'] ?? '',
           "Codigo": campo['codigo'] ?? '',
           "Descricao": campo['descricao'] ?? '',
           "Um": campo['unidade'] ?? '',
-          "qtd": campo['qtd'] ?? 1,
+          "qtd": int.tryParse(campo['qtd'] ?? '0') ?? 0,
+          "NumOs": campo['NumOs'],
           "Conta Contabil": campo['conta contabil'] ?? '',
           "Centro de Custo": (campo['centro de custo'] ?? '').toString(),
           "Almox": campo['Almox'] ?? '',
@@ -843,53 +964,63 @@ class _FCCAppState extends State<FCCApp> {
         };
       }).toList(),
     };
-    print((body));
+
+    print(jsonEncode(body));
     jsoncorpo = body;
-    final response = await http.post(
-      Uri.parse(url),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': basicAuth,
-      },
-      body: jsonEncode(body),
+
+    try {
+      final response = await http
+          .post(
+            Uri.parse(url),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': basicAuth,
+            },
+            body: jsonEncode(body),
+          )
+          .timeout(Duration(seconds: 10)); // Timeout de 10 segundos
+
+      if (response.statusCode >= 200 && response.statusCode <= 299) {
+        isImageAvailable = false;
+        setState(() {
+          Navigator.of(context).pop();
+          camposAdd.clear();
+          isImageAvailable = false;
+
+          final Map<String, dynamic> responseBody = jsonDecode(response.body);
+          sucessomessage = responseBody['note'] ?? 'Erro desconhecido';
+
+          _showAlertDialogSus(
+            context,
+            'Sucesso',
+            'Dados enviados com sucesso! $sucessomessage',
+            Colors.green,
+          );
+        });
+      } else {
+        _handleError();
+      }
+    } on TimeoutException {
+      _handleError('Erro na inclusão do registro. Tente novamente.');
+    } catch (e) {
+      _handleError('Erro inesperado: $e');
+    }
+  }
+
+  void _handleError([String message = 'Erro na inclusão do registro']) {
+    isImageAvailable = false;
+    Navigator.of(context).pop();
+
+    _showAlertDialogSus(
+      context,
+      'Aviso',
+      message,
+      Colors.red,
     );
 
-    if (response.statusCode >= 200 && response.statusCode <= 299) {
-      isImageAvailable = false;
-      setState(() {
-        Navigator.of(context).pop();
-
-        camposAdd.clear();
-
-        isImageAvailable = false;
-
-        final Map<String, dynamic> responseBody = jsonDecode(response.body);
-        sucessomessage = responseBody['note'] ?? 'Erro desconhecido';
-
-        _showAlertDialogSus(
-          context,
-          'Sucesso',
-          'Dados enviados com sucesso! $sucessomessage',
-          Colors.green,
-        );
-      });
-    } else {
-      isImageAvailable = false;
-
-      Navigator.of(context).pop();
-
-      isImageAvailable = false;
-
-      _showAlertDialogSus(
-        context,
-        'Aviso',
-        ' Erro na inclusão do registro ',
-        Colors.red,
-      );
-      setState(() {
-        camposAdd.clear();
-      });
-    }
+    setState(() {
+      camposAdd.clear();
+    });
   }
 
   Future<void> fetchDataimg() async {
@@ -905,6 +1036,357 @@ class _FCCAppState extends State<FCCApp> {
         imageData = response.bodyBytes;
       } else {}
     } catch (e) {}
+  }
+
+  List<Map<String, dynamic>> ordensDeServico = [];
+
+  Future<List<Map<String, dynamic>>> fetchDaOsOffline() async {
+    // Simula um tempo de espera, se necessário
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    const jsonString = '''
+  {
+    "Dados": [
+      {
+        "Numero Os": "019942",
+        "Data Emissao": "31/12/2000",
+        "Status OS": "A",
+        "Emitente OS": "VITOR MONTEIRO RODRIGUES"
+      },
+      {
+        "Numero Os": "019925",
+        "Data Emissao": "31/01/2020",
+        "Status OS": "A",
+        "Emitente OS": "BRUNA KELLEN PEDROSA GOMES"
+      },
+      {
+        "Numero Os": "019997",
+        "Data Emissao": "03/02/2020",
+        "Status OS": "A",
+        "Emitente OS": "ALEXANDRO OKI GRACA"
+      }
+    ]
+  }
+  ''';
+
+    final Map<String, dynamic> data = json.decode(jsonString);
+    final List<dynamic> dados = data['Dados'];
+    return List<Map<String, dynamic>>.from(dados);
+  }
+
+  Future<List<Map<String, dynamic>>> fetchDaOs() async {
+    final username = widget.user;
+    final password = widget.senha;
+    final basicAuth =
+        'Basic ' + base64Encode(utf8.encode('$username:$password'));
+
+    final url = 'http://192.168.0.6:80/REST/ipena_insol/BUSCAOS';
+
+    try {
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {'Authorization': basicAuth},
+      );
+
+      List<Map<String, dynamic>> itemsList = [];
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        itemsList = List<Map<String, dynamic>>.from(data['Dados']);
+        setState(() {
+          ordensDeServico = itemsList;
+        });
+        return List<Map<String, dynamic>>.from(data['Dados']);
+      } else {
+        print('errodasdasdasdasdr');
+        Navigator.of(context).pop();
+        throw [];
+      }
+    } catch (error) {
+      print('Error: $error');
+
+      return [];
+      // Return an empty list in case of an error
+    }
+  }
+
+  Future<String?> _showPopupMenu_Os(
+      BuildContext context, String controller) async {
+    final GlobalKey<State> _keyLoader = GlobalKey<State>();
+
+    // Verifica a conexão com a internet
+    var connectivityResult = await Connectivity().checkConnectivity();
+    if (connectivityResult == ConnectivityResult.none) {
+      _showErrorDialog(context, "Sem conexão com a internet.");
+      return null;
+    }
+
+    // Exibe o diálogo de carregamento
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          key: _keyLoader,
+          child: Container(
+            height: 100,
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: const [
+                CircularProgressIndicator(),
+                SizedBox(width: 20),
+                Text('Carregando...'),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    try {
+      final List<Map<String, dynamic>> items = await fetchDaOs().timeout(
+        const Duration(seconds: 18),
+        onTimeout: () {
+          throw TimeoutException("O tempo limite foi excedido.");
+        },
+      );
+
+      Navigator.of(_keyLoader.currentContext!, rootNavigator: true)
+          .pop(); // Fecha o diálogo de carregamento
+
+      final selected = await showModalBottomSheet<String>(
+        context: context,
+        isScrollControlled: true,
+        builder: (BuildContext context) {
+          String searchText = "";
+          return StatefulBuilder(
+            builder: (context, setState) {
+              final List<Map<String, dynamic>> filteredItems =
+                  items.where((item) {
+                final os = (item['Numero Os']?.toString() ?? "").toLowerCase();
+                final emit =
+                    (item['Emitente OS']?.toString() ?? "").toLowerCase();
+                return os.contains(searchText) || emit.contains(searchText);
+              }).toList();
+
+              return SafeArea(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: Text(
+                        'Selecione a Ordem de Serviço:',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16.0, vertical: 8.0),
+                      child: TextField(
+                        autofocus: true,
+                        decoration: const InputDecoration(
+                          hintText: "Pesquise por OS ou Emitente",
+                          prefixIcon: Icon(Icons.search),
+                          border: OutlineInputBorder(),
+                        ),
+                        onChanged: (value) {
+                          setState(() {
+                            searchText = value.toLowerCase();
+                          });
+                        },
+                      ),
+                    ),
+                    Expanded(
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: filteredItems.length,
+                        itemBuilder: (context, index) {
+                          final item = filteredItems[index];
+                          return ListTile(
+                            title: Text(
+                                '${item['Numero Os']} : ${item['Emitente OS']} - ${item['Data Emissao']}'),
+                            onTap: () {
+                              Navigator.of(context)
+                                  .pop(item['Numero Os'].toString());
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          );
+        },
+      );
+
+      if (selected != null) {
+        controller = selected;
+      }
+      return selected;
+    } on TimeoutException {
+      Navigator.of(_keyLoader.currentContext!, rootNavigator: true).pop();
+      _showErrorDialog(
+          context, "O tempo limite foi excedido. Tente novamente.");
+      return null;
+    } catch (error) {
+      Navigator.of(_keyLoader.currentContext!, rootNavigator: true).pop();
+      _showErrorDialog(context, "Erro ao carregar os dados.");
+      return null;
+    }
+  }
+
+  Future<String?> _showPopupMenu_Osnew(
+      BuildContext context, String controller) async {
+    final GlobalKey<State> _keyLoader = GlobalKey<State>();
+
+    // Verifica a conexão com a internet
+    var connectivityResult = await Connectivity().checkConnectivity();
+    if (connectivityResult == ConnectivityResult.none) {
+      _showErrorDialog(context, "Sem conexão com a internet.");
+      return null;
+    }
+
+    // Exibe o diálogo de carregamento
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          key: _keyLoader,
+          child: Container(
+            height: 100,
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: const [
+                CircularProgressIndicator(),
+                SizedBox(width: 20),
+                Text('Carregando...'),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    try {
+      final List<Map<String, dynamic>> items = await fetchDaOs().timeout(
+        const Duration(seconds: 18),
+        onTimeout: () {
+          throw TimeoutException("O tempo limite foi excedido.");
+        },
+      );
+
+      Navigator.of(_keyLoader.currentContext!, rootNavigator: true)
+          .pop(); // Fecha o diálogo de carregamento
+
+      final selected = await showModalBottomSheet<String>(
+        context: context,
+        isScrollControlled: true,
+        builder: (BuildContext context) {
+          String searchText = "";
+          return StatefulBuilder(
+            builder: (context, setState) {
+              final List<Map<String, dynamic>> filteredItems =
+                  items.where((item) {
+                final os = (item['Numero Os']?.toString() ?? "").toLowerCase();
+                final emit =
+                    (item['Emitente OS']?.toString() ?? "").toLowerCase();
+                return os.contains(searchText) || emit.contains(searchText);
+              }).toList();
+
+              return SafeArea(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: Text(
+                        'Selecione a Ordem de Serviço:',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16.0, vertical: 8.0),
+                      child: TextField(
+                        autofocus: true,
+                        decoration: const InputDecoration(
+                          hintText: "Pesquise por OS ou Emitente",
+                          prefixIcon: Icon(Icons.search),
+                          border: OutlineInputBorder(),
+                        ),
+                        onChanged: (value) {
+                          setState(() {
+                            searchText = value.toLowerCase();
+                          });
+                        },
+                      ),
+                    ),
+                    Expanded(
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: filteredItems.length,
+                        itemBuilder: (context, index) {
+                          final item = filteredItems[index];
+                          return ListTile(
+                            title: Text(
+                                '${item['Numero Os']} : ${item['Emitente OS']} - ${item['Data Emissao']}'),
+                            onTap: () {
+                              Navigator.of(context)
+                                  .pop(item['Numero Os'].toString());
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          );
+        },
+      );
+
+      if (selected != null) {
+        controller = selected;
+      }
+      return selected;
+    } on TimeoutException {
+      Navigator.of(_keyLoader.currentContext!, rootNavigator: true).pop();
+      _showErrorDialog(
+          context, "O tempo limite foi excedido. Tente novamente.");
+      return null;
+    } catch (error) {
+      Navigator.of(_keyLoader.currentContext!, rootNavigator: true).pop();
+      _showErrorDialog(context, "Erro ao carregar os dados.");
+      return null;
+    }
+  }
+
+// Função para exibir mensagens de erro
+  void _showErrorDialog(BuildContext context, String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("Erro"),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text("OK"),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Uint8List? imageBytes;

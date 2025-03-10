@@ -1,0 +1,2 @@
+C:/Users/kevin/Documents/GitHub/Trabalho/fcc/android/app/.cxx/RelWithDebInfo/1b562b63/x86_64/CMakeFiles/edit_cache.dir
+C:/Users/kevin/Documents/GitHub/Trabalho/fcc/android/app/.cxx/RelWithDebInfo/1b562b63/x86_64/CMakeFiles/rebuild_cache.dir

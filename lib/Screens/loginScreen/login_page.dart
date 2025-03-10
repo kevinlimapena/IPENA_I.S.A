@@ -29,6 +29,15 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     });
   }
 
+  bool _obscureText = true; // Estado para controlar a visibilidade da senha
+
+  // Função para alternar a visibilidade da senha
+  void _togglePasswordVisibility() {
+    setState(() {
+      _obscureText = !_obscureText;
+    });
+  }
+
   String _versao = '?';
   @override
   void initState() {
@@ -88,7 +97,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                   TextField(
                     controller: _userController,
                     onSubmitted: (value) async {
-                      await loginold();
+                      await login();
                     },
                     keyboardType: TextInputType.emailAddress,
                     decoration: InputDecoration(
@@ -102,13 +111,21 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                   const SizedBox(height: 20),
                   TextField(
                     onSubmitted: (value) async {
-                      await loginold();
+                      await login();
                     },
                     controller: _passwordController,
-                    obscureText: true,
+                    obscureText: _obscureText,
                     decoration: InputDecoration(
                       labelText: 'Senha',
                       prefixIcon: Icon(Icons.lock),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscureText
+                              ? Icons.visibility
+                              : Icons.visibility_off,
+                        ),
+                        onPressed: _togglePasswordVisibility,
+                      ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
@@ -117,11 +134,13 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                   const SizedBox(height: 20),
                   ElevatedButton(
                     onPressed: () async {
-                      await loginold();
+                      await login();
                     },
                     style: ElevatedButton.styleFrom(
-                      padding:
-                          EdgeInsets.symmetric(horizontal: 50, vertical: 15),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 50,
+                        vertical: 15,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
@@ -134,6 +153,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                       child: CircularProgressIndicator(),
                     ),
                   const SizedBox(height: 20),
+
                   // TextButton(
                   //   onPressed: () {
                   //     // Função de recuperação de senha
@@ -153,13 +173,13 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                   //     style: TextStyle(color: Colors.blue),
                   //   ),
                   // ),
-
                   const SizedBox(
-                      height: 20), // Add some space before the version
+                    height: 20,
+                  ), // Add some space before the version
                   Text(
                     'V.$_versao', // Replace with your app version
                     style: TextStyle(color: Colors.grey, fontSize: 16),
-                  )
+                  ),
                 ],
               ),
             ),
@@ -180,7 +200,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
         context,
         MaterialPageRoute(
           builder: (context) => HomeScreen(
-            user: _userController.text,
+            user: _userController.text ?? 'UserName',
             senha: _passwordController.text,
           ),
         ),
@@ -205,8 +225,12 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
       setState(() {
         isLoading = false;
       });
-      _showMessage(context, 'Usuário e senha são obrigatórios.',
-          'Por favor, insira seu nome de usuário e senha.', 'Aviso');
+      _showMessage(
+        context,
+        'Usuário e senha são obrigatórios.',
+        'Por favor, insira seu nome de usuário e senha.',
+        'Aviso',
+      );
       return;
     }
 
@@ -235,22 +259,14 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => HomeScreen(
-              user: username,
-              senha: password,
-            ),
+            builder: (context) => HomeScreen(user: username, senha: password),
           ),
         );
       } else {
         // Trata a resposta de erro
         final Map<String, dynamic> responseBody = jsonDecode(response.body);
         String mensagem = responseBody['message'] ?? 'Erro desconhecido';
-        _showMessage(
-          context,
-          mensagem,
-          mensagem,
-          'Aviso',
-        );
+        _showMessage(context, mensagem, mensagem, 'Aviso');
       }
     } catch (e) {
       // Ocorreu um erro durante a solicitação POST
@@ -271,7 +287,11 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
   }
 
   void _showMessage(
-      BuildContext context, String action, String responseData, String titulo) {
+    BuildContext context,
+    String action,
+    String responseData,
+    String titulo,
+  ) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -279,10 +299,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
           title: Text(titulo),
           content: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 8),
-              Text(responseData),
-            ],
+            children: [const SizedBox(height: 8), Text(responseData)],
           ),
           contentPadding: const EdgeInsets.all(16.0),
           actions: [

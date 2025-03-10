@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'dart:ui';
@@ -9,9 +10,16 @@ import 'dart:math' as math;
 class baixaSolicitacaoScreen extends StatefulWidget {
   final String user;
   final String senha;
-
+  final String texto;
+  final Function(int) onIndexChanged;
+  final Function(String) updateTexto;
   const baixaSolicitacaoScreen(
-      {super.key, required this.user, required this.senha});
+      {super.key,
+      required this.user,
+      required this.senha,
+      required this.updateTexto,
+      required this.texto,
+      required this.onIndexChanged});
   @override
   _baixaSolicitacaoScreenState createState() => _baixaSolicitacaoScreenState();
 }
@@ -21,14 +29,22 @@ class _baixaSolicitacaoScreenState extends State<baixaSolicitacaoScreen> {
   List<Map<String, dynamic>> _dadosFiltrados = [];
   List<bool> _selectedRows = [];
   bool _isLoading = true;
+  bool _shouldFetchData = true;
+  int exIndex = 0;
   late double width;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+  }
+
   @override
   void initState() {
     super.initState();
     _fetchData();
     FlutterView view = WidgetsBinding.instance.platformDispatcher.views.first;
 
-// Dimensions in physical pixels (px)
+    // Dimensions in physical pixels (px)
     Size size = view.physicalSize;
     double largura = size.width;
 
@@ -55,14 +71,17 @@ class _baixaSolicitacaoScreenState extends State<baixaSolicitacaoScreen> {
     });
   }
 
-  // Função para buscar dados da API
   Future<void> _fetchData() async {
-    final username = 'IPENA';
-    final password = 'Nina@2010';
+    setState(() {
+      _isLoading = true;
+    });
+
+    final username = widget.user;
+    final password = widget.senha;
+
     final basicAuth =
         'Basic ' + base64Encode(utf8.encode('$username:$password'));
-    const String url =
-        'http://yamadalomfabricacao123875.protheus.cloudtotvs.com.br:4050/rest/IPENA_INSOL/BUSCASA';
+    const String url = 'http://192.168.0.6:80/REST/ipena_insol/BUSCASA';
 
     try {
       final response = await http.get(
@@ -78,6 +97,7 @@ class _baixaSolicitacaoScreenState extends State<baixaSolicitacaoScreen> {
             _dados = dados.cast<Map<String, dynamic>>();
             _selectedRows = List<bool>.filled(_dados.length, false);
             _isLoading = false;
+            widget.updateTexto(_dados.toString());
             _applyFilter();
             print(_dadosFiltrados);
           });
@@ -92,6 +112,7 @@ class _baixaSolicitacaoScreenState extends State<baixaSolicitacaoScreen> {
     }
   }
 
+  // widgets...
   Future<void> fetchDataof() async {
     setState(() {
       _isLoading = true;
@@ -149,7 +170,6 @@ class _baixaSolicitacaoScreenState extends State<baixaSolicitacaoScreen> {
     }
   }
 
-  // Função para exibir mensagens de erro
   void _showError(String message) {
     setState(() {
       _isLoading = false;
@@ -159,8 +179,33 @@ class _baixaSolicitacaoScreenState extends State<baixaSolicitacaoScreen> {
     );
   }
 
-  // Função para enviar dados selecionados
-  void _sendSelectedRows() {
+  void _confirmarBaixar() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Confirmação'),
+          content: const Text('Você deseja baixar as solicitações?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _enviarDados();
+              },
+              child: const Text('Sim'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _enviarDados() async {
+    _showLoadingDialog(context, 'Processando...');
     final selectedData = _dados
         .asMap()
         .entries
@@ -168,15 +213,148 @@ class _baixaSolicitacaoScreenState extends State<baixaSolicitacaoScreen> {
         .map((entry) => entry.value)
         .toList();
 
-    // Aqui você pode fazer um POST ou qualquer outro processamento com os dados
-    print('Dados selecionados: $selectedData');
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('${selectedData.length} item(ns) enviado(s).')),
+    final String solicitacao =
+        selectedData.isNotEmpty ? selectedData[0]['Solicitacao'] : '';
+    final String centroDeCusto =
+        _dadosFiltrados.isNotEmpty ? _dadosFiltrados[0]['Centro de custo'] : '';
+
+    final List<Map<String, dynamic>> bxsa = selectedData.map((item) {
+      return {
+        "Item": item['Item'],
+        "Codigo": item['Codigo'],
+        "Endereco": "",
+        "Qtd": item['Qtd Solic'],
+        "Almox": item['Almox'],
+      };
+    }).toList();
+
+    final Map<String, dynamic> novoJson = {
+      "Solicitacao": solicitacao,
+      "Centro de Custo": centroDeCusto,
+      "BXSA": bxsa,
+    };
+
+    _showLoadingDialog(context, 'Processando...');
+    print(jsonEncode(novoJson));
+
+    final username = widget.user;
+    final password = widget.senha;
+    final basicAuth =
+        'Basic ' + base64Encode(utf8.encode('$username:$password'));
+
+    try {
+      final url = Uri.parse('http://192.168.0.6:80/rest/ipena_insol/BAIXASA');
+      final response = await http
+          .post(
+            url,
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': basicAuth,
+            },
+            body: jsonEncode(novoJson),
+          )
+          .timeout(const Duration(seconds: 10)); // Adicionando timeout
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final Map<String, dynamic> responseBody = jsonDecode(response.body);
+        String sucessomessage = responseBody['note'] ?? 'Erro desconhecido';
+
+        _showAlertDialogSus(
+          context,
+          'Sucesso',
+          'Dados enviados com sucesso! $sucessomessage',
+          Colors.green,
+        );
+      } else {
+        _showAlertDialogSus(
+          context,
+          'Aviso',
+          'Erro ao enviar solicitações.',
+          Colors.red,
+        );
+      }
+    } on TimeoutException {
+      Navigator.of(context).pop();
+      _showErrorDialog(
+          context, "O tempo limite foi excedido. Tente novamente.");
+    } catch (e) {
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro: $e')),
+      );
+    }
+  }
+
+  void _showErrorDialog(BuildContext context, String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("Erro"),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text("OK"),
+            ),
+          ],
+        );
+      },
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    return listViewer();
+  }
+
+  void _showLoadingDialog(BuildContext context, String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text(message),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showAlertDialogSus(
+      BuildContext context, String title, String message, Color color) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(
+            title,
+            style: TextStyle(color: color),
+          ),
+          content: Text(message),
+          actions: [
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).pop();
+                Navigator.of(context).pop();
+                _fetchData();
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget listViewer() {
     return Scaffold(
         appBar: AppBar(
           automaticallyImplyLeading: false,
@@ -196,7 +374,7 @@ class _baixaSolicitacaoScreenState extends State<baixaSolicitacaoScreen> {
                 children: [
                   GestureDetector(
                     onTap: _selectedRows.any((isSelected) => isSelected)
-                        ? _sendSelectedRows
+                        ? _confirmarBaixar
                         : null,
                     child: Container(
                       padding: const EdgeInsets.all(8),
@@ -269,143 +447,161 @@ class _baixaSolicitacaoScreenState extends State<baixaSolicitacaoScreen> {
                       ],
                     ),
                   )
-                : ListViewer());
-  }
+                : SingleChildScrollView(
+                    child: Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Card(
+                          elevation: 4,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16.0),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Lista de Solicitações',
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                SingleChildScrollView(
+                                    scrollDirection: Axis.horizontal,
+                                    child: DataTable(
+                                      columnSpacing: width / (8),
+                                      headingRowColor:
+                                          WidgetStateColor.resolveWith(
+                                        (states) => Colors.grey.shade200,
+                                      ),
+                                      headingTextStyle: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black,
+                                      ),
+                                      dataTextStyle: const TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.black,
+                                      ),
+                                      columns: [
+                                        DataColumn(label: Text('Selecionar')),
 
-  Widget ListViewer() {
-    return SingleChildScrollView(
-      child: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Card(
-            elevation: 4,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16.0),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Lista de Solicitações',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: DataTable(
-                        columnSpacing: width / (8),
-                        headingRowColor: WidgetStateColor.resolveWith(
-                          (states) => Colors.grey.shade200,
-                        ),
-                        headingTextStyle: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black,
-                        ),
-                        dataTextStyle: const TextStyle(
-                          fontSize: 14,
-                          color: Colors.black,
-                        ),
-                        columns: [
-                          DataColumn(label: Text('Selecionar')),
+                                        DataColumn(
+                                          label: GestureDetector(
+                                            onTap: () {},
+                                            child: Text('Solicitante'),
+                                          ),
+                                        ),
+                                        // DataColumn(label: Text('Item')),
+                                        // DataColumn(label: Text('Código')),
+                                        //  DataColumn(label: Text('Descrição')),
+                                        //  DataColumn(label: Text('UM')),
+                                        // DataColumn(label: Text('Qtd Solic')),
+                                        //  DataColumn(label: Text('Almox')),
+                                        DataColumn(
+                                            label: Text('Centro de Custo')),
 
-                          DataColumn(
-                            label: GestureDetector(
-                              onTap: () {},
-                              child: Text('Solicitante'),
+                                        DataColumn(label: Text('Solicitação')),
+                                        // DataColumn(label: Text('Qtd Entregue')),
+                                        //  DataColumn(label: Text('Status SC')),
+                                      ],
+                                      rows: List<DataRow>.generate(
+                                        _dadosFiltrados
+                                            .length, // Usar _dadosFiltrados em vez de _dados
+                                        (index) => DataRow(
+                                          cells: [
+                                            DataCell(
+                                              Checkbox(
+                                                value:
+                                                    _selectedRows.length > index
+                                                        ? _selectedRows[index]
+                                                        : false,
+                                                onChanged: (bool? value) {
+                                                  setState(() {
+                                                    if (_selectedRows.length >
+                                                        index) {
+                                                      _selectedRows[index] =
+                                                          value ?? false;
+                                                    }
+                                                  });
+                                                },
+                                              ),
+                                            ),
+
+                                            DataCell(
+                                              Text(
+                                                _dadosFiltrados[index]
+                                                        ['Solicitante'] ??
+                                                    '',
+                                                style: TextStyle(
+                                                    color: Colors.blue),
+                                              ),
+                                              onTap: () {
+                                                Navigator.of(context).push(
+                                                  MaterialPageRoute(
+                                                    builder: (context) =>
+                                                        Subbaixa(
+                                                      user: widget.user,
+                                                      senha: widget.senha,
+                                                      dados: _dados,
+                                                      solicitante:
+                                                          _dadosFiltrados[index]
+                                                              ['Solicitante'],
+                                                      solicitacao:
+                                                          _dadosFiltrados[index]
+                                                              ['Solicitacao'],
+                                                      onIndexChanged: (int) {},
+                                                    ),
+                                                  ),
+                                                )..then((_) {
+                                                    _fetchData();
+                                                  });
+                                              },
+                                            ),
+                                            // DataCell(Text(_dadosFiltrados[index]['Item'] ?? '')),
+                                            // DataCell(
+                                            //   Text(
+                                            //     _dadosFiltrados[index]['Codigo'] ?? '',
+                                            //     style: TextStyle(color: Colors.blueGrey),
+                                            //   ),
+                                            //   onTap: () => _showProdutoDialog(
+                                            //     _dadosFiltrados[index]['Codigo'],
+                                            //   ),
+                                            // ),
+                                            // DataCell(Text(_dadosFiltrados[index]['Descricao'] ?? '')),
+                                            //   DataCell(Text(_dadosFiltrados[index]['Um'] ?? '')),
+                                            // DataCell(
+                                            //   Text(
+                                            //     _dadosFiltrados[index]['Qtd Solic']?.toString() ?? '',
+                                            //   ),
+                                            // ),
+                                            // DataCell(Text(_dadosFiltrados[index]['Almox'] ?? '')),
+                                            DataCell(Text(_dadosFiltrados[index]
+                                                    ['Centro de custo'] ??
+                                                '')),
+
+                                            DataCell(Text(_dadosFiltrados[index]
+                                                    ['Solicitacao'] ??
+                                                '')),
+                                            // DataCell(
+                                            // DataCell(
+                                            //   Text(
+                                            //     _dadosFiltrados[index]['Qtd Entregue']?.toString() ?? '',
+                                            //   ),
+                                            // ),
+                                            //  DataCell(Text(_dadosFiltrados[index]['Status SC'] ?? '')),
+                                          ],
+                                        ),
+                                      ),
+                                    )),
+                              ],
                             ),
                           ),
-                          // DataColumn(label: Text('Item')),
-                          // DataColumn(label: Text('Código')),
-                          //  DataColumn(label: Text('Descrição')),
-                          //  DataColumn(label: Text('UM')),
-                          // DataColumn(label: Text('Qtd Solic')),
-                          //  DataColumn(label: Text('Almox')),
-                          DataColumn(label: Text('Centro de Custo')),
-                          DataColumn(label: Text('Solicitação')),
-                          // DataColumn(label: Text('Qtd Entregue')),
-                          //  DataColumn(label: Text('Status SC')),
-                        ],
-                        rows: List<DataRow>.generate(
-                          _dadosFiltrados
-                              .length, // Usar _dadosFiltrados em vez de _dados
-                          (index) => DataRow(
-                            cells: [
-                              DataCell(
-                                Checkbox(
-                                  value: _selectedRows.length > index
-                                      ? _selectedRows[index]
-                                      : false,
-                                  onChanged: (bool? value) {
-                                    setState(() {
-                                      if (_selectedRows.length > index) {
-                                        _selectedRows[index] = value ?? false;
-                                      }
-                                    });
-                                  },
-                                ),
-                              ),
-
-                              DataCell(
-                                Text(_dadosFiltrados[index]['Solicitante'] ??
-                                    ''),
-                                onTap: () {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (context) => Subbaixa(
-                                        dados: _dados,
-                                        solicitante: _dadosFiltrados[index]
-                                            ['Solicitante'],
-                                        solicitacao: _dadosFiltrados[index]
-                                            ['Solicitacao'],
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
-                              // DataCell(Text(_dadosFiltrados[index]['Item'] ?? '')),
-                              // DataCell(
-                              //   Text(
-                              //     _dadosFiltrados[index]['Codigo'] ?? '',
-                              //     style: TextStyle(color: Colors.blueGrey),
-                              //   ),
-                              //   onTap: () => _showProdutoDialog(
-                              //     _dadosFiltrados[index]['Codigo'],
-                              //   ),
-                              // ),
-                              // DataCell(Text(_dadosFiltrados[index]['Descricao'] ?? '')),
-                              //   DataCell(Text(_dadosFiltrados[index]['Um'] ?? '')),
-                              // DataCell(
-                              //   Text(
-                              //     _dadosFiltrados[index]['Qtd Solic']?.toString() ?? '',
-                              //   ),
-                              // ),
-                              // DataCell(Text(_dadosFiltrados[index]['Almox'] ?? '')),
-                              DataCell(Text(_dadosFiltrados[index]
-                                      ['Centro de custo'] ??
-                                  '')),
-                              DataCell(Text(
-                                  _dadosFiltrados[index]['Solicitacao'] ?? '')),
-                              // DataCell(
-                              //   Text(
-                              //     _dadosFiltrados[index]['Qtd Entregue']?.toString() ?? '',
-                              //   ),
-                              // ),
-                              //  DataCell(Text(_dadosFiltrados[index]['Status SC'] ?? '')),
-                            ],
-                          ),
                         ),
-                      )),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
+                      ),
+                    ),
+                  ));
   }
 }

@@ -1,5 +1,6 @@
 import 'package:fcc/Screens/views/baixaScreen/baixaSolicitacaoScreen.dart';
 import 'package:flutter/material.dart';
+import '../views/baixaScreen/baixaHome.dart';
 import '../views/solicitacaoScreen.dart'; // Importe correto do arquivo da sua tabela dinâmica.
 import '../loginScreen/login_page.dart';
 
@@ -123,8 +124,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => baixaSolicitacaoScreen(
-                              user: widget.user, senha: widget.senha),
+                          builder: (context) =>
+                              Baixahome(user: widget.user, senha: widget.senha),
                         ),
                       );
                     },
