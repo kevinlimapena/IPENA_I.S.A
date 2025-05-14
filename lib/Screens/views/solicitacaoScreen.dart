@@ -430,13 +430,13 @@ class _FCCAppState extends State<FCCApp> {
                           : Colors.transparent,
                     ),
                     children: [
+                      // Coluna: Código
                       TableCell(
                         child: InkWell(
                           onTap: () {
                             setState(() {
                               selectedIndex = index;
                               selectedrowData = data;
-
                               selectedcode = data["Codigo"];
                               pegarImagemGet();
                             });
@@ -448,25 +448,81 @@ class _FCCAppState extends State<FCCApp> {
                           ),
                         ),
                       ),
-                      Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Text(data["Descrição"] ?? '',
-                            style: TextStyle(fontSize: 14)),
+
+                      // Coluna: Descrição
+                      TableCell(
+                        child: InkWell(
+                          onTap: () {
+                            setState(() {
+                              selectedIndex = index;
+                              selectedrowData = data;
+                              selectedcode = data["Codigo"];
+                              pegarImagemGet();
+                            });
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Text(data["Descrição"] ?? '',
+                                style: TextStyle(fontSize: 14)),
+                          ),
+                        ),
                       ),
-                      Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Text(data["Centro de custo"] ?? '',
-                            style: TextStyle(fontSize: 14)),
+
+                      // Coluna: Centro de custo
+                      TableCell(
+                        child: InkWell(
+                          onTap: () {
+                            setState(() {
+                              selectedIndex = index;
+                              selectedrowData = data;
+                              selectedcode = data["Codigo"];
+                              pegarImagemGet();
+                            });
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Text(data["Centro de custo"] ?? '',
+                                style: TextStyle(fontSize: 14)),
+                          ),
+                        ),
                       ),
-                      Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Text(data["Unidade"] ?? '',
-                            style: TextStyle(fontSize: 14)),
+
+                      // Coluna: Unidade
+                      TableCell(
+                        child: InkWell(
+                          onTap: () {
+                            setState(() {
+                              selectedIndex = index;
+                              selectedrowData = data;
+                              selectedcode = data["Codigo"];
+                              pegarImagemGet();
+                            });
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Text(data["Unidade"] ?? '',
+                                style: TextStyle(fontSize: 14)),
+                          ),
+                        ),
                       ),
-                      Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Text(data["Saldo"] ?? '',
-                            style: TextStyle(fontSize: 14)),
+
+                      // Coluna: Saldo
+                      TableCell(
+                        child: InkWell(
+                          onTap: () {
+                            setState(() {
+                              selectedIndex = index;
+                              selectedrowData = data;
+                              selectedcode = data["Codigo"];
+                              pegarImagemGet();
+                            });
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Text(data["Saldo"] ?? '',
+                                style: TextStyle(fontSize: 14)),
+                          ),
+                        ),
                       ),
                     ],
                   );
@@ -645,7 +701,7 @@ class _FCCAppState extends State<FCCApp> {
                                 'Imagem': selectedrowData['Imagem'] ?? '',
                                 'Almox': selectedrowData['Almoxarifado'] ?? '',
                                 'qtd': '',
-                                'NumOs': ''
+                                'NumOs': '',
                               });
                             } else {
                               // Exibe uma mensagem informando que o item já foi adicionado
@@ -689,26 +745,57 @@ class _FCCAppState extends State<FCCApp> {
                         'Solicitar',
                         style: TextStyle(color: Colors.blueAccent),
                       ),
-                      onPressed: () async {
-                        // Exibe o diálogo de confirmação antes de enviar
-                        bool confirm = await _showConfirmationDialog(
-                          context,
-                          'Deseja enviar os dados?',
-                        );
+                      onPressed: (camposAdd
+                                  .any((campo) => campo['isInvalid'] == true) ||
+                              !camposAdd.any(
+                                  (campo) => campo.containsKey('isInvalid')) ||
+                              (camposAdd.any((campo) => campo['qtd'] == '')))
+                          ? null
+                          : () async {
+                              // Verifica se há algum item com código iniciando com PR e sem NumOs
+                              final prInvalido = camposAdd.any((campo) {
+                                final codigo =
+                                    campo['codigo']?.toString() ?? '';
+                                final numOs = campo['NumOs']?.toString() ?? '';
+                                return codigo.startsWith('PR') && numOs.isEmpty;
+                              });
 
-                        if (confirm) {
-                          // Exibe um diálogo de carregamento enquanto processa
-                          _showLoadingDialog(context, 'Enviando dados...');
+                              if (prInvalido) {
+                                await showDialog(
+                                  context: context,
+                                  builder: (_) => AlertDialog(
+                                    title: Text('Número da OS obrigatório'),
+                                    content: Text(
+                                        'Para itens com código iniciando com "PR", é obrigatório informar o número da OS.'),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(context),
+                                        child: Text('OK'),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                                return; // Impede o envio
+                              }
 
-                          try {
-                            // Tenta enviar os dados
-                            await postData2();
-                          } catch (error) {}
-                        }
+                              // Mostra o alerta de confirmação normalmente
+                              bool confirm = await _showConfirmationDialog(
+                                context,
+                                'Deseja enviar os dados?',
+                              );
 
-                        // Log para debug
-                        print('Campos adicionados: $camposAdd');
-                      },
+                              if (confirm) {
+                                _showLoadingDialog(
+                                    context, 'Enviando dados...');
+                                try {
+                                  await postData2();
+                                } catch (error) {
+                                  // lidar com erro se necessário
+                                }
+                              }
+
+                              print('Campos adicionados: $camposAdd');
+                            },
                     ),
                   ],
                 ),
@@ -811,12 +898,52 @@ class _FCCAppState extends State<FCCApp> {
                                 //       style: TextStyle(fontSize: 10),
                                 //       campo['descricao'] ?? ''),
                                 // ),
-                                Padding(
-                                  padding: const EdgeInsets.all(8.0),
-                                  child: Text(
-                                      style: TextStyle(fontSize: 10),
-                                      campo['centro de custo'] ?? ''),
+                                GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      campo['editando'] = true;
+                                    });
+                                  },
+                                  child: campo['editando'] == true
+                                      ? Padding(
+                                          padding: const EdgeInsets.all(8.0),
+                                          child: Focus(
+                                            onFocusChange: (hasFocus) {
+                                              if (!hasFocus) {
+                                                setState(() {
+                                                  campo['editando'] = false;
+                                                });
+                                              }
+                                            },
+                                            child: TextField(
+                                              autofocus:
+                                                  true, // Para focar automaticamente ao clicar
+                                              onSubmitted: (value) {
+                                                setState(() {
+                                                  campo['centro de custo'] =
+                                                      value;
+                                                  campo['editando'] = false;
+                                                });
+                                              },
+                                              decoration: InputDecoration(
+                                                border: OutlineInputBorder(),
+                                                isDense: true,
+                                                contentPadding:
+                                                    EdgeInsets.all(8),
+                                              ),
+                                              style: TextStyle(fontSize: 10),
+                                            ),
+                                          ),
+                                        )
+                                      : Padding(
+                                          padding: const EdgeInsets.all(8.0),
+                                          child: Text(
+                                            campo['centro de custo'] ?? '',
+                                            style: TextStyle(fontSize: 10),
+                                          ),
+                                        ),
                                 ),
+
                                 Padding(
                                   padding: const EdgeInsets.all(8.0),
                                   child: Row(
@@ -828,7 +955,8 @@ class _FCCAppState extends State<FCCApp> {
                                       IconButton(
                                         onPressed: () async {
                                           final result =
-                                              await _showPopupMenu_Os(context,
+                                              await _showPopupMenu_Osnew(
+                                                  context,
                                                   campo['NumOs'] ?? '');
                                           if (result != null) {
                                             setState(() {
@@ -861,12 +989,41 @@ class _FCCAppState extends State<FCCApp> {
                                     children: [
                                       Expanded(
                                         child: TextField(
+                                          inputFormatters: [
+                                            FilteringTextInputFormatter
+                                                .digitsOnly
+                                          ],
+                                          keyboardType: TextInputType
+                                              .number, // Garante entrada numérica
                                           onChanged: (value) {
-                                            campo['qtd'] = value;
+                                            setState(() {
+                                              campo['qtd'] = value;
+                                              campo['isInvalid'] =
+                                                  (double.tryParse(value) !=
+                                                          null &&
+                                                      double.parse(value) <= 0);
+                                            });
                                           },
                                           decoration: InputDecoration(
                                             border: OutlineInputBorder(),
                                             hintText: 'Digite a quantidade',
+                                            errorText:
+                                                campo['isInvalid'] == true
+                                                    ? 'Valor Invalido'
+                                                    : null, // Mensagem de erro
+                                            errorBorder: OutlineInputBorder(
+                                              borderSide: BorderSide(
+                                                  color: Colors.red, width: 2),
+                                            ),
+                                            focusedBorder: OutlineInputBorder(
+                                              borderSide: BorderSide(
+                                                color:
+                                                    campo['isInvalid'] == true
+                                                        ? Colors.red
+                                                        : Colors.blue,
+                                                width: 2,
+                                              ),
+                                            ),
                                           ),
                                         ),
                                       ),
@@ -944,7 +1101,7 @@ class _FCCAppState extends State<FCCApp> {
     final password = widget.senha;
     final basicAuth =
         'Basic ' + base64Encode(utf8.encode('$username:$password'));
-
+    camposAdd;
     final body = {
       "CP_NUM": "",
       "CP_EMISSAO": "",
@@ -1104,7 +1261,7 @@ class _FCCAppState extends State<FCCApp> {
       }
     } catch (error) {
       print('Error: $error');
-
+      Navigator.of(context).pop();
       return [];
       // Return an empty list in case of an error
     }

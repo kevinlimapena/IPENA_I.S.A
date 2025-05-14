@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
@@ -163,14 +164,17 @@ class _SubbaixaState extends State<Subbaixa> {
       final password = widget.senha;
       final basicAuth =
           'Basic ' + base64Encode(utf8.encode('$username:$password'));
-      final response = await http.post(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': basicAuth,
-        },
-        body: jsonEncode(novoJson),
-      );
+      final response = await http
+          .post(
+            url,
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': basicAuth,
+            },
+            body: jsonEncode(novoJson),
+          )
+          .timeout(const Duration(seconds: 8));
+      ;
       print("Dados enviados: ${jsonEncode(novoJson)}");
 
       // Fecha o diálogo de carregamento
@@ -192,6 +196,10 @@ class _SubbaixaState extends State<Subbaixa> {
           const SnackBar(content: Text('Erro ao enviar solicitações.')),
         );
       }
+    } on TimeoutException {
+      Navigator.of(context).pop();
+      _showErrorDialog(
+          context, "O tempo limite foi excedido. Tente novamente.");
     } catch (e) {
       Navigator.of(context).pop();
       // Fecha o diálogo de carregamento em caso de erro
@@ -199,6 +207,24 @@ class _SubbaixaState extends State<Subbaixa> {
         const SnackBar(content: Text('Erro ao enviar solicitações.')),
       );
     }
+  }
+
+  void _showErrorDialog(BuildContext context, String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("Erro"),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text("OK"),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void _showLoadingDialog(BuildContext context, String message) {

@@ -234,7 +234,6 @@ class _baixaSolicitacaoScreenState extends State<baixaSolicitacaoScreen> {
       "BXSA": bxsa,
     };
 
-    _showLoadingDialog(context, 'Processando...');
     print(jsonEncode(novoJson));
 
     final username = widget.user;
@@ -253,7 +252,7 @@ class _baixaSolicitacaoScreenState extends State<baixaSolicitacaoScreen> {
             },
             body: jsonEncode(novoJson),
           )
-          .timeout(const Duration(seconds: 10)); // Adicionando timeout
+          .timeout(const Duration(seconds: 8)); // Adicionando timeout
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final Map<String, dynamic> responseBody = jsonDecode(response.body);

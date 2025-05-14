@@ -1,17 +1,13 @@
 import 'dart:async';
-import 'dart:io' show Platform;
 
 import 'dart:ui';
 
 import 'package:fcc/Screens/views/informacoesScreen.dart';
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
-import 'package:provider/provider.dart';
-import 'package:get/route_manager.dart';
 import '../../Componentes/MenuItem.dart';
 import '../loginScreen/login_page.dart';
 import '../views/baixaScreen/baixaSolicitacaoScreen.dart';
-import '../views/enter/EnterHome.dart';
 import '../views/solicitacaoScreen.dart';
 import 'package:intl/intl.dart';
 
